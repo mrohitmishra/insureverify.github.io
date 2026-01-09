@@ -4,10 +4,22 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { StatsCard } from "@/components/shared/StatsCard";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { DataTable } from "@/components/shared/DataTable";
-import { FolderOpen, ClipboardCheck, Clock, Lock, Plus } from "lucide-react";
+import {
+  FolderOpen,
+  ClipboardCheck,
+  Clock,
+  Lock,
+  Plus,
+  Eye,
+  Pencil,
+  Trash2,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUpDown,
+} from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -17,6 +29,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 // Enhancement: align mock statuses with workflow (CREATED → ASSIGNED → INSPECTED → VERIFIED → COMPLETED).
 const recentCases = [
@@ -34,7 +55,467 @@ const branchCases = [
   { branch: "Chennai", pending: 12, inProgress: 5, completed: 87 },
 ];
 
+type CaseListStatus = "Pending" | "In Progress" | "Completed";
+
+type CaseListRow = {
+  id: string;
+  name: string;
+  branch: string;
+  client: string;
+  clientBranch: string;
+  receivedAt: string;
+  completedAt: string;
+  points: number;
+  status: CaseListStatus;
+};
+
+function CaseStatusBadge({ status }: { status: CaseListStatus }) {
+  // Spec-aligned badge colors: Pending=Yellow, In Progress=Blue, Completed=Green.
+  const className =
+    status === "Pending"
+      ? "bg-amber-100 text-amber-700 border-amber-200"
+      : status === "In Progress"
+        ? "bg-blue-100 text-blue-700 border-blue-200"
+        : "bg-emerald-100 text-emerald-700 border-emerald-200";
+
+  return (
+    <Badge variant="outline" className={className}>
+      {status}
+    </Badge>
+  );
+}
+
+function CaseListPage() {
+  /**
+   * Case List (refinement-only):
+   * - Removes dashboard widgets/charts/panels from this route.
+   * - Implements locked filter row + locked columns + icon-only actions.
+   */
+  const [vendorBranch, setVendorBranch] = useState<string>("all");
+  const [client, setClient] = useState<string>("all");
+  const [clientBranch, setClientBranch] = useState<string>("all");
+  const [status, setStatus] = useState<string>("all");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [search, setSearch] = useState("");
+
+  const [sortKey, setSortKey] = useState<
+    "name" | "branch" | "client" | "receivedAt" | "completedAt" | "points" | null
+  >(null);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+
+  const [page, setPage] = useState(1);
+  const pageSize = 10;
+
+  const rows: CaseListRow[] = useMemo(
+    () => [
+      {
+        id: "C-2026-101",
+        name: "Rahul Sharma",
+        branch: "Mumbai HQ",
+        client: "HDFC Ergo",
+        clientBranch: "Mumbai",
+        receivedAt: "2026-01-08",
+        completedAt: "2026-01-09",
+        points: 12,
+        status: "Completed",
+      },
+      {
+        id: "C-2026-102",
+        name: "Priya Patel",
+        branch: "Delhi NCR",
+        client: "ICICI Lombard",
+        clientBranch: "Delhi",
+        receivedAt: "2026-01-08",
+        completedAt: "",
+        points: 8,
+        status: "In Progress",
+      },
+      {
+        id: "C-2026-103",
+        name: "Amit Kumar",
+        branch: "Bangalore",
+        client: "Bajaj Allianz",
+        clientBranch: "Bangalore",
+        receivedAt: "2026-01-07",
+        completedAt: "",
+        points: 6,
+        status: "Pending",
+      },
+      {
+        id: "C-2026-104",
+        name: "Sunita Devi",
+        branch: "Chennai",
+        client: "Tata AIG",
+        clientBranch: "Chennai",
+        receivedAt: "2026-01-06",
+        completedAt: "2026-01-08",
+        points: 10,
+        status: "Completed",
+      },
+      {
+        id: "C-2026-105",
+        name: "Vikram Singh",
+        branch: "Mumbai HQ",
+        client: "New India Assurance",
+        clientBranch: "Pune",
+        receivedAt: "2026-01-06",
+        completedAt: "",
+        points: 5,
+        status: "Pending",
+      },
+    ],
+    []
+  );
+
+  const uniqueVendorBranches = useMemo(
+    () => Array.from(new Set(rows.map((r) => r.branch))).sort(),
+    [rows]
+  );
+  const uniqueClients = useMemo(() => Array.from(new Set(rows.map((r) => r.client))).sort(), [rows]);
+  const uniqueClientBranches = useMemo(
+    () => Array.from(new Set(rows.map((r) => r.clientBranch))).sort(),
+    [rows]
+  );
+
+  const filtered = useMemo(() => {
+    const normalizedSearch = search.trim().toLowerCase();
+    return rows
+      .filter((r) => (vendorBranch === "all" ? true : r.branch === vendorBranch))
+      .filter((r) => (client === "all" ? true : r.client === client))
+      .filter((r) => (clientBranch === "all" ? true : r.clientBranch === clientBranch))
+      .filter((r) => (status === "all" ? true : r.status === status))
+      .filter((r) => (fromDate ? r.receivedAt >= fromDate : true))
+      .filter((r) => (toDate ? r.receivedAt <= toDate : true))
+      .filter((r) => {
+        if (!normalizedSearch) return true;
+        return (
+          r.name.toLowerCase().includes(normalizedSearch) ||
+          r.branch.toLowerCase().includes(normalizedSearch) ||
+          r.client.toLowerCase().includes(normalizedSearch) ||
+          r.id.toLowerCase().includes(normalizedSearch)
+        );
+      });
+  }, [client, clientBranch, fromDate, rows, search, status, toDate, vendorBranch]);
+
+  const sorted = useMemo(() => {
+    if (!sortKey) return filtered;
+    const dir = sortDir === "asc" ? 1 : -1;
+    return [...filtered].sort((a, b) => {
+      const av = a[sortKey];
+      const bv = b[sortKey];
+      if (typeof av === "number" && typeof bv === "number") return (av - bv) * dir;
+      return String(av).localeCompare(String(bv)) * dir;
+    });
+  }, [filtered, sortDir, sortKey]);
+
+  const totalPages = Math.max(1, Math.ceil(sorted.length / pageSize));
+  const pageSafe = Math.min(page, totalPages);
+  const start = (pageSafe - 1) * pageSize;
+  const paged = sorted.slice(start, start + pageSize);
+
+  const resetFilters = () => {
+    setVendorBranch("all");
+    setClient("all");
+    setClientBranch("all");
+    setStatus("all");
+    setFromDate("");
+    setToDate("");
+    setPage(1);
+  };
+
+  const toggleSort = (key: typeof sortKey) => {
+    setPage(1);
+    if (sortKey !== key) {
+      setSortKey(key);
+      setSortDir("asc");
+      return;
+    }
+    setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+  };
+
+  const sortHeader = (label: string, key: Exclude<typeof sortKey, null>) => (
+    <button
+      type="button"
+      className="inline-flex items-center gap-1 font-semibold text-foreground"
+      onClick={() => toggleSort(key)}
+      data-testid={`sort-${key}`}
+    >
+      {label}
+      <ArrowUpDown className="w-3.5 h-3.5 text-muted-foreground" />
+    </button>
+  );
+
+  return (
+    <DashboardLayout role="back-office" userName="Kiran Joshi">
+      <div className="space-y-4">
+        <div>
+          <h1 className="text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
+            Case List
+          </h1>
+          <p className="text-muted-foreground">List and filter cases</p>
+        </div>
+
+        {/* FILTER SECTION (TOP) — single horizontal row per spec */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="space-y-2 min-w-[180px]">
+                <Label>Vendor Branch</Label>
+                <Select
+                  value={vendorBranch}
+                  onValueChange={(v) => {
+                    setVendorBranch(v);
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger data-testid="filter-vendor-branch">
+                    <SelectValue placeholder="All" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    {uniqueVendorBranches.map((b) => (
+                      <SelectItem key={b} value={b}>
+                        {b}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2 min-w-[180px]">
+                <Label>Client</Label>
+                <Select
+                  value={client}
+                  onValueChange={(v) => {
+                    setClient(v);
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger data-testid="filter-client">
+                    <SelectValue placeholder="All" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    {uniqueClients.map((c) => (
+                      <SelectItem key={c} value={c}>
+                        {c}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2 min-w-[180px]">
+                <Label>Client Branch</Label>
+                <Select
+                  value={clientBranch}
+                  onValueChange={(v) => {
+                    setClientBranch(v);
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger data-testid="filter-client-branch">
+                    <SelectValue placeholder="All" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    {uniqueClientBranches.map((b) => (
+                      <SelectItem key={b} value={b}>
+                        {b}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2 min-w-[160px]">
+                <Label>Status</Label>
+                <Select
+                  value={status}
+                  onValueChange={(v) => {
+                    setStatus(v);
+                    setPage(1);
+                  }}
+                >
+                  <SelectTrigger data-testid="filter-status">
+                    <SelectValue placeholder="All" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="Pending">Pending</SelectItem>
+                    <SelectItem value="In Progress">In Progress</SelectItem>
+                    <SelectItem value="Completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Received Date</Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="date"
+                    value={fromDate}
+                    onChange={(e) => {
+                      setFromDate(e.target.value);
+                      setPage(1);
+                    }}
+                    data-testid="filter-received-from"
+                  />
+                  <span className="text-muted-foreground">→</span>
+                  <Input
+                    type="date"
+                    value={toDate}
+                    onChange={(e) => {
+                      setToDate(e.target.value);
+                      setPage(1);
+                    }}
+                    data-testid="filter-received-to"
+                  />
+                </div>
+              </div>
+
+              <Button variant="outline" onClick={resetFilters} data-testid="reset-filters">
+                Reset Filters
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Search input only filters table data (allowed per spec) */}
+        <div className="flex items-center justify-end">
+          <div className="w-full sm:w-[320px]">
+            <Input
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Search"
+              data-testid="case-list-search"
+            />
+          </div>
+        </div>
+
+        {/* TABLE STRUCTURE (LOCKED) — only these columns, in this order */}
+        <div className="bg-card rounded-xl border border-card-border overflow-hidden">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/50 hover:bg-muted/50">
+                <TableHead className="w-[60px]">#</TableHead>
+                <TableHead>{sortHeader("Name", "name")}</TableHead>
+                <TableHead>{sortHeader("Branch", "branch")}</TableHead>
+                <TableHead>{sortHeader("Client", "client")}</TableHead>
+                <TableHead>{sortHeader("Received At", "receivedAt")}</TableHead>
+                <TableHead>{sortHeader("Completed At", "completedAt")}</TableHead>
+                <TableHead className="text-right">{sortHeader("Points", "points")}</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="w-[120px]">Action</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {paged.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="h-24 text-center text-muted-foreground">
+                    No results found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                paged.map((r, idx) => (
+                  <TableRow key={r.id} className="hover:bg-transparent">
+                    <TableCell className="text-muted-foreground">{start + idx + 1}</TableCell>
+                    <TableCell className="font-medium">{r.name}</TableCell>
+                    <TableCell>{r.branch}</TableCell>
+                    <TableCell>{r.client}</TableCell>
+                    <TableCell>{r.receivedAt}</TableCell>
+                    <TableCell>{r.completedAt || "-"}</TableCell>
+                    <TableCell className="text-right font-medium">{r.points}</TableCell>
+                    <TableCell>
+                      <CaseStatusBadge status={r.status} />
+                    </TableCell>
+                    <TableCell>
+                      {/* Icon-only actions per spec. Row click does nothing. */}
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => {}}
+                          data-testid={`action-view-${r.id}`}
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => {}}
+                          data-testid={`action-edit-${r.id}`}
+                        >
+                          <Pencil className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => {}}
+                          data-testid={`action-delete-${r.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Pagination (bottom) */}
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Showing {paged.length ? start + 1 : 0}-{Math.min(start + pageSize, sorted.length)} of {sorted.length}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={pageSafe <= 1}
+              data-testid="case-list-prev"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            <span className="text-sm">
+              Page {pageSafe} of {totalPages}
+            </span>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={pageSafe >= totalPages}
+              data-testid="case-list-next"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </DashboardLayout>
+  );
+}
+
 export default function BackOfficeDashboard() {
+  const [location] = useLocation();
+
+  // Case List route must stay simple: ONLY listing + filtering.
+  if (location === "/back-office/cases") {
+    return <CaseListPage />;
+  }
+
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
