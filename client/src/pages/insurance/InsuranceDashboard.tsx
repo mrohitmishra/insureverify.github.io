@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { StatsCard } from "@/components/shared/StatsCard";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogHeader,
@@ -23,35 +24,78 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 import { Upload, FileText, Download, Clock, CheckCircle2, FolderOpen, Eye, MapPin } from "lucide-react";
 
 const submittedCases = [
-  { id: "IC-2024-001", insuredName: "Rahul Sharma", type: "Property", location: "Mumbai", status: "completed", submittedAt: "2024-01-08", reportReady: true },
-  { id: "IC-2024-002", insuredName: "Priya Patel", type: "Vehicle", location: "Delhi", status: "in-progress", submittedAt: "2024-01-07", reportReady: false },
-  { id: "IC-2024-003", insuredName: "Amit Kumar", type: "Property", location: "Bangalore", status: "pending", submittedAt: "2024-01-06", reportReady: false },
-  { id: "IC-2024-004", insuredName: "Sunita Devi", type: "Health", location: "Chennai", status: "completed", submittedAt: "2024-01-05", reportReady: true },
-  { id: "IC-2024-005", insuredName: "Vikram Singh", type: "Business", location: "Pune", status: "in-progress", submittedAt: "2024-01-04", reportReady: false },
+  // Enhancement: align statuses with workflow (CREATED → ASSIGNED → INSPECTED → VERIFIED → COMPLETED).
+  { id: "IC-2024-001", insuredName: "Rahul Sharma", type: "Property", branch: "Mumbai HQ", assignedTo: "Back Office - Kiran J", location: "Mumbai", status: "completed", submittedAt: "2026-01-08", reportReady: true },
+  { id: "IC-2024-002", insuredName: "Priya Patel", type: "Vehicle", branch: "Delhi NCR", assignedTo: "FE - Suresh K", location: "Delhi", status: "assigned", submittedAt: "2026-01-07", reportReady: false },
+  { id: "IC-2024-003", insuredName: "Amit Kumar", type: "Property", branch: "Bangalore", assignedTo: "Back Office - Meera R", location: "Bangalore", status: "created", submittedAt: "2026-01-06", reportReady: false },
+  { id: "IC-2024-004", insuredName: "Sunita Devi", type: "Health", branch: "Chennai", assignedTo: "Back Office - Kiran J", location: "Chennai", status: "verified", submittedAt: "2026-01-05", reportReady: false },
+  { id: "IC-2024-005", insuredName: "Vikram Singh", type: "Business", branch: "Mumbai HQ", assignedTo: "FE - Ganesh N", location: "Pune", status: "inspected", submittedAt: "2026-01-04", reportReady: false },
 ];
 
 function UploadCaseDialog() {
+  const { toast } = useToast();
+  const [open, setOpen] = useState(false);
+
+  const [insuredName, setInsuredName] = useState("");
+  const [verificationType, setVerificationType] = useState("");
+  const [pincode, setPincode] = useState("");
+  const [address, setAddress] = useState("");
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+
+  const canSubmit = useMemo(() => {
+    return Boolean(insuredName.trim() && verificationType && pincode.trim() && address.trim());
+  }, [address, insuredName, pincode, verificationType]);
+
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setAttemptedSubmit(true);
+    if (!canSubmit) return;
+
+    toast({
+      title: "Case submitted",
+      description: "Case created and sent to Back Office (status: CREATED).",
+    });
+    setOpen(false);
+    setAttemptedSubmit(false);
+    setInsuredName("");
+    setVerificationType("");
+    setPincode("");
+    setAddress("");
+  };
+
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         <Button className="gap-2" data-testid="upload-case-button">
           <Upload className="w-4 h-4" />
-          Upload New Case
+          Create Case
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle style={{ fontFamily: "var(--font-display)" }}>Upload New Case</DialogTitle>
-          <DialogDescription>Submit a new verification case for processing</DialogDescription>
+          <DialogTitle style={{ fontFamily: "var(--font-display)" }}>Create Case</DialogTitle>
+          <DialogDescription>
+            Submits the case to Back Office for assignment (Insurance Company → Back Office → Field Executive)
+          </DialogDescription>
         </DialogHeader>
-        <form className="space-y-4 mt-4">
+        <form className="space-y-4 mt-4" onSubmit={onSubmit}>
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="insuredName">Insured Name *</Label>
-              <Input id="insuredName" placeholder="Full name" data-testid="input-insured-name" />
+              <Input
+                id="insuredName"
+                value={insuredName}
+                onChange={(e) => setInsuredName(e.target.value)}
+                placeholder="Full name"
+                data-testid="input-insured-name"
+              />
+              {attemptedSubmit && !insuredName.trim() && (
+                <p className="text-xs text-destructive">Insured name is required.</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="policyNumber">Policy Number</Label>
@@ -60,8 +104,8 @@ function UploadCaseDialog() {
           </div>
 
           <div className="space-y-2">
-            <Label>Verification Type</Label>
-            <Select>
+            <Label>Verification Type *</Label>
+            <Select value={verificationType} onValueChange={setVerificationType}>
               <SelectTrigger data-testid="select-type">
                 <SelectValue placeholder="Select type" />
               </SelectTrigger>
@@ -72,12 +116,24 @@ function UploadCaseDialog() {
                 <SelectItem value="business">Business Verification</SelectItem>
               </SelectContent>
             </Select>
+            {attemptedSubmit && !verificationType && (
+              <p className="text-xs text-destructive">Verification type is required.</p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="pincode">Pincode *</Label>
-              <Input id="pincode" placeholder="400001" data-testid="input-pincode" />
+              <Input
+                id="pincode"
+                value={pincode}
+                onChange={(e) => setPincode(e.target.value)}
+                placeholder="400001"
+                data-testid="input-pincode"
+              />
+              {attemptedSubmit && !pincode.trim() && (
+                <p className="text-xs text-destructive">Pincode is required.</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="city">City</Label>
@@ -87,7 +143,14 @@ function UploadCaseDialog() {
 
           <div className="space-y-2">
             <Label htmlFor="address">Full Address *</Label>
-            <Input id="address" placeholder="Complete address" data-testid="input-address" />
+            <Input
+              id="address"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Complete address"
+              data-testid="input-address"
+            />
+            {attemptedSubmit && !address.trim() && <p className="text-xs text-destructive">Address is required.</p>}
           </div>
 
           <div className="space-y-2">
@@ -100,8 +163,12 @@ function UploadCaseDialog() {
           </div>
 
           <div className="flex justify-end gap-3 pt-4">
-            <Button type="button" variant="outline">Cancel</Button>
-            <Button type="submit" data-testid="submit-case">Submit Case</Button>
+            <DialogClose asChild>
+              <Button type="button" variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button type="submit" data-testid="submit-case" disabled={!canSubmit}>
+              Submit Case (CREATED)
+            </Button>
           </div>
         </form>
       </DialogContent>
@@ -110,6 +177,19 @@ function UploadCaseDialog() {
 }
 
 export default function InsuranceDashboard() {
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+
+  const filteredCases = useMemo(() => {
+    return submittedCases.filter((c) => {
+      if (statusFilter !== "all" && c.status !== statusFilter) return false;
+      if (fromDate && c.submittedAt < fromDate) return false;
+      if (toDate && c.submittedAt > toDate) return false;
+      return true;
+    });
+  }, [fromDate, statusFilter, toDate]);
+
   return (
     <DashboardLayout role="insurance-company" userName="HDFC Ergo">
       <div className="space-y-6">
@@ -119,7 +199,9 @@ export default function InsuranceDashboard() {
             <h1 className="text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
               Insurance Company Dashboard
             </h1>
-            <p className="text-muted-foreground">Upload cases and download verification reports</p>
+            <p className="text-muted-foreground">
+              Submit cases to Back Office and download reports after completion
+            </p>
           </div>
           <UploadCaseDialog />
         </div>
@@ -156,11 +238,40 @@ export default function InsuranceDashboard() {
             <CardTitle style={{ fontFamily: "var(--font-display)" }}>Submitted Cases</CardTitle>
           </CardHeader>
           <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger data-testid="filter-status">
+                    <SelectValue placeholder="All" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="created">CREATED</SelectItem>
+                    <SelectItem value="assigned">ASSIGNED</SelectItem>
+                    <SelectItem value="inspected">INSPECTED</SelectItem>
+                    <SelectItem value="verified">VERIFIED</SelectItem>
+                    <SelectItem value="completed">COMPLETED</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>From</Label>
+                <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} data-testid="filter-from" />
+              </div>
+              <div className="space-y-2">
+                <Label>To</Label>
+                <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} data-testid="filter-to" />
+              </div>
+            </div>
+
             <DataTable
               columns={[
                 { key: "id", label: "Case ID", className: "font-mono" },
                 { key: "insuredName", label: "Insured Name" },
                 { key: "type", label: "Type" },
+                { key: "branch", label: "Branch" },
+                { key: "assignedTo", label: "Assigned" },
                 {
                   key: "location",
                   label: "Location",
@@ -174,7 +285,11 @@ export default function InsuranceDashboard() {
                 {
                   key: "status",
                   label: "Status",
-                  render: (row) => <StatusBadge status={row.status as "completed" | "in-progress" | "pending"} />,
+                  render: (row) => (
+                    <StatusBadge
+                      status={row.status as "created" | "assigned" | "inspected" | "verified" | "completed"}
+                    />
+                  ),
                 },
                 { key: "submittedAt", label: "Submitted" },
                 {
@@ -185,16 +300,21 @@ export default function InsuranceDashboard() {
                       <Button variant="ghost" size="icon" className="h-8 w-8" data-testid={`view-${row.id}`}>
                         <Eye className="w-4 h-4" />
                       </Button>
-                      {row.reportReady && (
-                        <Button variant="ghost" size="icon" className="h-8 w-8 text-primary" data-testid={`download-${row.id}`}>
-                          <Download className="w-4 h-4" />
-                        </Button>
-                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        data-testid={`download-${row.id}`}
+                        disabled={!row.reportReady}
+                        title={row.reportReady ? "Download report" : "Report available after COMPLETED"}
+                      >
+                        <Download className="w-4 h-4" />
+                      </Button>
                     </div>
                   ),
                 },
               ]}
-              data={submittedCases}
+              data={filteredCases}
               searchPlaceholder="Search cases..."
             />
           </CardContent>
@@ -205,7 +325,7 @@ export default function InsuranceDashboard() {
           <Card>
             <CardHeader>
               <CardTitle className="text-lg" style={{ fontFamily: "var(--font-display)" }}>
-                Verification by Type
+                Cases by Type
               </CardTitle>
             </CardHeader>
             <CardContent>

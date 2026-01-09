@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { clearSession } from "@/lib/auth";
 import { useToast } from "@/hooks/use-toast";
 import { StatusBadge } from "@/components/shared/StatusBadge";
@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Shield,
   MapPin,
@@ -24,33 +27,38 @@ import {
   Play,
 } from "lucide-react";
 
+// Enhancement: align to workflow statuses.
+// Field Executive primarily sees: ASSIGNED (work pending/in-progress) and INSPECTED (submitted to Back Office).
 const todaysCases = [
-  { id: "C-001", name: "Rahul Sharma", type: "Property", address: "123, MG Road, Andheri West", time: "10:00 AM", status: "pending", phone: "+91 98765 43210" },
-  { id: "C-002", name: "Priya Patel", type: "Vehicle", address: "45, Link Road, Bandra", time: "11:30 AM", status: "in-progress", phone: "+91 98765 43211" },
-  { id: "C-003", name: "Amit Kumar", type: "Property", address: "78, Carter Road, Khar", time: "2:00 PM", status: "pending", phone: "+91 98765 43212" },
+  { id: "C-001", name: "Rahul Sharma", type: "Property", branch: "Mumbai HQ", address: "123, MG Road, Andheri West", time: "10:00 AM", status: "assigned", phone: "+91 98765 43210", assignedAt: "2026-01-09" },
+  { id: "C-002", name: "Priya Patel", type: "Vehicle", branch: "Mumbai HQ", address: "45, Link Road, Bandra", time: "11:30 AM", status: "assigned", inProgress: true, progress: 60, phone: "+91 98765 43211", assignedAt: "2026-01-09" },
+  { id: "C-003", name: "Amit Kumar", type: "Property", branch: "Mumbai HQ", address: "78, Carter Road, Khar", time: "2:00 PM", status: "assigned", phone: "+91 98765 43212", assignedAt: "2026-01-09" },
 ];
 
-const pendingCases = [
-  { id: "C-004", name: "Sunita Devi", type: "Health", address: "234, Hill Road, Bandra", dueDate: "Today", status: "pending", phone: "+91 98765 43213" },
-  { id: "C-005", name: "Vikram Singh", type: "Property", address: "567, SV Road, Malad", dueDate: "Tomorrow", status: "pending", phone: "+91 98765 43214" },
+const assignedCases = [
+  { id: "C-004", name: "Sunita Devi", type: "Health", branch: "Mumbai HQ", address: "234, Hill Road, Bandra", dueDate: "Today", status: "assigned", phone: "+91 98765 43213", assignedAt: "2026-01-08" },
+  { id: "C-005", name: "Vikram Singh", type: "Property", branch: "Mumbai HQ", address: "567, SV Road, Malad", dueDate: "Tomorrow", status: "assigned", phone: "+91 98765 43214", assignedAt: "2026-01-08" },
 ];
 
 const ongoingCases = [
-  { id: "C-006", name: "Meera Reddy", type: "Vehicle", address: "89, Linking Road", progress: 60, status: "in-progress", phone: "+91 98765 43215" },
+  { id: "C-006", name: "Meera Reddy", type: "Vehicle", branch: "Mumbai HQ", address: "89, Linking Road", progress: 60, inProgress: true, status: "assigned", phone: "+91 98765 43215", assignedAt: "2026-01-07" },
 ];
 
 const completedCases = [
-  { id: "C-007", name: "Kiran Joshi", type: "Property", address: "12, Juhu Lane", completedAt: "9:30 AM", status: "completed", phone: "+91 98765 43216" },
-  { id: "C-008", name: "Anjali Shah", type: "Business", address: "45, Versova Road", completedAt: "Yesterday", status: "completed", phone: "+91 98765 43217" },
+  { id: "C-007", name: "Kiran Joshi", type: "Property", branch: "Mumbai HQ", address: "12, Juhu Lane", completedAt: "9:30 AM", status: "inspected", phone: "+91 98765 43216", assignedAt: "2026-01-06" },
+  { id: "C-008", name: "Anjali Shah", type: "Business", branch: "Mumbai HQ", address: "45, Versova Road", completedAt: "Yesterday", status: "inspected", phone: "+91 98765 43217", assignedAt: "2026-01-05" },
 ];
 
 interface Case {
   id: string;
   name: string;
   type: string;
+  branch?: string;
   address: string;
   phone: string;
   status: string;
+  assignedAt?: string;
+  inProgress?: boolean;
   time?: string;
   dueDate?: string;
   progress?: number;
@@ -69,8 +77,11 @@ function CaseCard({ caseItem, showAction = true }: { caseItem: Case; showAction?
         <div>
           <p className="font-semibold">{caseItem.name}</p>
           <p className="text-sm text-muted-foreground">{caseItem.type} Verification</p>
+          <p className="text-xs text-muted-foreground">
+            {caseItem.id}{caseItem.branch ? ` • ${caseItem.branch}` : ""}
+          </p>
         </div>
-        <StatusBadge status={caseItem.status as "pending" | "in-progress" | "completed"} />
+        <StatusBadge status={caseItem.status as "assigned" | "inspected"} />
       </div>
 
       <div className="space-y-2 text-sm">
@@ -108,7 +119,7 @@ function CaseCard({ caseItem, showAction = true }: { caseItem: Case; showAction?
             <Navigation className="w-4 h-4" />
             Navigate
           </Button>
-          {caseItem.status === "pending" && (
+          {caseItem.status === "assigned" && !caseItem.inProgress && (
             <Link href={`/field/inspection/${caseItem.id}`}>
               <Button size="sm" className="gap-2" data-testid={`start-${caseItem.id}`}>
                 <Play className="w-4 h-4" />
@@ -116,7 +127,7 @@ function CaseCard({ caseItem, showAction = true }: { caseItem: Case; showAction?
               </Button>
             </Link>
           )}
-          {caseItem.status === "in-progress" && (
+          {caseItem.status === "assigned" && caseItem.inProgress && (
             <Link href={`/field/inspection/${caseItem.id}`}>
               <Button size="sm" className="gap-2" data-testid={`continue-${caseItem.id}`}>
                 <Camera className="w-4 h-4" />
@@ -131,8 +142,22 @@ function CaseCard({ caseItem, showAction = true }: { caseItem: Case; showAction?
 }
 
 export default function FieldDashboard() {
+  const [, navigate] = useLocation();
   const [activeTab, setActiveTab] = useState("today");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
   const { toast } = useToast();
+
+  const filterCases = useMemo(() => {
+    return (cases: Case[]) =>
+      cases.filter((c) => {
+        if (statusFilter !== "all" && c.status !== statusFilter) return false;
+        if (fromDate && c.assignedAt && c.assignedAt < fromDate) return false;
+        if (toDate && c.assignedAt && c.assignedAt > toDate) return false;
+        return true;
+      });
+  }, [fromDate, statusFilter, toDate]);
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -172,9 +197,9 @@ export default function FieldDashboard() {
       <div className="p-4 grid grid-cols-4 gap-2">
         {[
           { label: "Today", value: 3, color: "bg-blue-500" },
-          { label: "Pending", value: 2, color: "bg-amber-500" },
+          { label: "Assigned", value: 2, color: "bg-amber-500" },
           { label: "Ongoing", value: 1, color: "bg-purple-500" },
-          { label: "Done", value: 2, color: "bg-emerald-500" },
+          { label: "Inspected", value: 2, color: "bg-emerald-500" },
         ].map((stat) => (
           <div key={stat.label} className="bg-card rounded-xl p-3 text-center border border-card-border">
             <div className={`w-8 h-8 rounded-full ${stat.color} flex items-center justify-center mx-auto mb-1`}>
@@ -193,37 +218,61 @@ export default function FieldDashboard() {
               Today
             </TabsTrigger>
             <TabsTrigger value="pending" className="text-xs" data-testid="tab-pending">
-              Pending
+              Assigned
             </TabsTrigger>
             <TabsTrigger value="ongoing" className="text-xs" data-testid="tab-ongoing">
               Ongoing
             </TabsTrigger>
             <TabsTrigger value="completed" className="text-xs" data-testid="tab-completed">
-              Done
+              Inspected
             </TabsTrigger>
           </TabsList>
 
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger data-testid="filter-status">
+                  <SelectValue placeholder="All" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All</SelectItem>
+                  <SelectItem value="assigned">ASSIGNED</SelectItem>
+                  <SelectItem value="inspected">INSPECTED</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>From</Label>
+              <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} data-testid="filter-from" />
+            </div>
+            <div className="space-y-2">
+              <Label>To</Label>
+              <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} data-testid="filter-to" />
+            </div>
+          </div>
+
           <div className="mt-4 space-y-3">
             <TabsContent value="today" className="m-0 space-y-3">
-              {todaysCases.map((c) => (
+              {filterCases(todaysCases as unknown as Case[]).map((c) => (
                 <CaseCard key={c.id} caseItem={c} />
               ))}
             </TabsContent>
 
             <TabsContent value="pending" className="m-0 space-y-3">
-              {pendingCases.map((c) => (
+              {filterCases(assignedCases as unknown as Case[]).map((c) => (
                 <CaseCard key={c.id} caseItem={c} />
               ))}
             </TabsContent>
 
             <TabsContent value="ongoing" className="m-0 space-y-3">
-              {ongoingCases.map((c) => (
+              {filterCases(ongoingCases as unknown as Case[]).map((c) => (
                 <CaseCard key={c.id} caseItem={c} />
               ))}
             </TabsContent>
 
             <TabsContent value="completed" className="m-0 space-y-3">
-              {completedCases.map((c) => (
+              {filterCases(completedCases as unknown as Case[]).map((c) => (
                 <CaseCard key={c.id} caseItem={c} showAction={false} />
               ))}
             </TabsContent>

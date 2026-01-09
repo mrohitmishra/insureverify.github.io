@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
@@ -14,7 +14,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, Upload, MessageSquare, Mail, FileText, CheckCircle2 } from "lucide-react";
 
 export default function AddNewCase() {
@@ -22,8 +21,32 @@ export default function AddNewCase() {
   const [source, setSource] = useState<"whatsapp" | "email" | "manual">("manual");
   const [submitted, setSubmitted] = useState(false);
 
+  // Enhancement: validations + workflow-aligned labels (UI-only, no backend).
+  const [insuranceCompany, setInsuranceCompany] = useState("");
+  const [caseType, setCaseType] = useState("");
+  const [insuredName, setInsuredName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [pincode, setPincode] = useState("");
+  const [branch, setBranch] = useState("");
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
+
+  const canSubmit = useMemo(() => {
+    return Boolean(
+      insuranceCompany &&
+        caseType &&
+        insuredName.trim() &&
+        phone.trim() &&
+        address.trim() &&
+        pincode.trim() &&
+        branch
+    );
+  }, [address, branch, caseType, insuranceCompany, insuredName, phone, pincode]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setAttemptedSubmit(true);
+    if (!canSubmit) return;
     setSubmitted(true);
     setTimeout(() => {
       navigate("/back-office");
@@ -69,7 +92,9 @@ export default function AddNewCase() {
             <h1 className="text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
               Add New Case
             </h1>
-            <p className="text-muted-foreground">Create a new verification case manually</p>
+            <p className="text-muted-foreground">
+              Create a case in Back Office (Insurance Company → Back Office → Field Executive)
+            </p>
           </div>
         </div>
 
@@ -115,7 +140,7 @@ export default function AddNewCase() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="insuranceCompany">Insurance Company *</Label>
-                      <Select>
+                      <Select value={insuranceCompany} onValueChange={setInsuranceCompany}>
                         <SelectTrigger data-testid="select-insurance-company">
                           <SelectValue placeholder="Select company" />
                         </SelectTrigger>
@@ -127,10 +152,13 @@ export default function AddNewCase() {
                           <SelectItem value="newindia">New India Assurance</SelectItem>
                         </SelectContent>
                       </Select>
+                      {attemptedSubmit && !insuranceCompany && (
+                        <p className="text-xs text-destructive">Insurance company is required.</p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="caseType">Case Type *</Label>
-                      <Select>
+                      <Select value={caseType} onValueChange={setCaseType}>
                         <SelectTrigger data-testid="select-case-type">
                           <SelectValue placeholder="Select type" />
                         </SelectTrigger>
@@ -141,6 +169,9 @@ export default function AddNewCase() {
                           <SelectItem value="business">Business Verification</SelectItem>
                         </SelectContent>
                       </Select>
+                      {attemptedSubmit && !caseType && (
+                        <p className="text-xs text-destructive">Case type is required.</p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -153,7 +184,16 @@ export default function AddNewCase() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="insuredName">Insured Name *</Label>
-                      <Input id="insuredName" placeholder="Full name" data-testid="input-insured-name" />
+                      <Input
+                        id="insuredName"
+                        value={insuredName}
+                        onChange={(e) => setInsuredName(e.target.value)}
+                        placeholder="Full name"
+                        data-testid="input-insured-name"
+                      />
+                      {attemptedSubmit && !insuredName.trim() && (
+                        <p className="text-xs text-destructive">Insured name is required.</p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="policyNumber">Policy Number</Label>
@@ -161,7 +201,17 @@ export default function AddNewCase() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="phone">Contact Phone *</Label>
-                      <Input id="phone" type="tel" placeholder="+91 98765 43210" data-testid="input-phone" />
+                      <Input
+                        id="phone"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        type="tel"
+                        placeholder="+91 98765 43210"
+                        data-testid="input-phone"
+                      />
+                      {attemptedSubmit && !phone.trim() && (
+                        <p className="text-xs text-destructive">Contact phone is required.</p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="email">Email</Label>
@@ -182,13 +232,27 @@ export default function AddNewCase() {
                         id="address"
                         placeholder="Enter complete address"
                         rows={3}
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
                         data-testid="input-address"
                       />
+                      {attemptedSubmit && !address.trim() && (
+                        <p className="text-xs text-destructive">Address is required.</p>
+                      )}
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="pincode">Pincode *</Label>
-                        <Input id="pincode" placeholder="400001" data-testid="input-pincode" />
+                        <Input
+                          id="pincode"
+                          value={pincode}
+                          onChange={(e) => setPincode(e.target.value)}
+                          placeholder="400001"
+                          data-testid="input-pincode"
+                        />
+                        {attemptedSubmit && !pincode.trim() && (
+                          <p className="text-xs text-destructive">Pincode is required.</p>
+                        )}
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="city">City</Label>
@@ -227,7 +291,7 @@ export default function AddNewCase() {
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
                     <Label>Assign to Branch</Label>
-                    <Select>
+                    <Select value={branch} onValueChange={setBranch}>
                       <SelectTrigger data-testid="select-branch">
                         <SelectValue placeholder="Select branch" />
                       </SelectTrigger>
@@ -238,6 +302,10 @@ export default function AddNewCase() {
                         <SelectItem value="chennai">Chennai</SelectItem>
                       </SelectContent>
                     </Select>
+                    {attemptedSubmit && !branch && <p className="text-xs text-destructive">Branch is required.</p>}
+                    <p className="text-xs text-muted-foreground">
+                      Field Executive assignment happens after Back Office picks the case.
+                    </p>
                   </div>
                   <div className="space-y-2">
                     <Label>Priority</Label>
@@ -277,9 +345,12 @@ export default function AddNewCase() {
 
               {/* Submit */}
               <div className="space-y-3">
-                <Button type="submit" className="w-full" size="lg" data-testid="submit-case">
-                  Create Case
+                <Button type="submit" className="w-full" size="lg" data-testid="submit-case" disabled={!canSubmit}>
+                  Create Case (CREATED)
                 </Button>
+                {attemptedSubmit && !canSubmit && (
+                  <p className="text-xs text-destructive">Fill all required fields to create a case.</p>
+                )}
                 <Button
                   type="button"
                   variant="outline"

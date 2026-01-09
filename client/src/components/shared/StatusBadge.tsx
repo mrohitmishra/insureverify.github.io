@@ -1,7 +1,17 @@
 import { cn } from "@/lib/utils";
 import { Lock, Clock, CheckCircle2, AlertCircle, Play } from "lucide-react";
 
-type Status = "started" | "pending" | "in-progress" | "completed" | "locked";
+// Enhancement: align status labels with the finalized workflow while keeping legacy statuses.
+type Status =
+  | "created"
+  | "assigned"
+  | "inspected"
+  | "verified"
+  | "completed"
+  | "started"
+  | "pending"
+  | "in-progress"
+  | "locked";
 
 interface StatusBadgeProps {
   status: Status;
@@ -10,6 +20,26 @@ interface StatusBadgeProps {
 }
 
 const statusConfig: Record<Status, { label: string; icon: React.ElementType; className: string }> = {
+  created: {
+    label: "Created",
+    icon: Clock,
+    className: "bg-amber-100 text-amber-700 border-amber-200",
+  },
+  assigned: {
+    label: "Assigned",
+    icon: Play,
+    className: "bg-blue-100 text-blue-700 border-blue-200",
+  },
+  inspected: {
+    label: "Inspected",
+    icon: AlertCircle,
+    className: "bg-purple-100 text-purple-700 border-purple-200",
+  },
+  verified: {
+    label: "Verified",
+    icon: CheckCircle2,
+    className: "bg-emerald-100 text-emerald-700 border-emerald-200",
+  },
   started: {
     label: "Started",
     icon: Play,

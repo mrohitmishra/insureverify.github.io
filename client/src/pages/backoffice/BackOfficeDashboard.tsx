@@ -1,19 +1,30 @@
 import { motion } from "framer-motion";
+import { useMemo, useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { StatsCard } from "@/components/shared/StatsCard";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { DataTable } from "@/components/shared/DataTable";
-import { FolderOpen, ClipboardCheck, Clock, Lock, Plus, AlertCircle } from "lucide-react";
+import { FolderOpen, ClipboardCheck, Clock, Lock, Plus } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
+// Enhancement: align mock statuses with workflow (CREATED → ASSIGNED → INSPECTED → VERIFIED → COMPLETED).
 const recentCases = [
-  { id: "C-2024-001", client: "HDFC Ergo", type: "Property", location: "Mumbai", status: "pending", assignedTo: "Self", lockedBy: null },
-  { id: "C-2024-002", client: "ICICI Lombard", type: "Vehicle", location: "Delhi", status: "in-progress", assignedTo: "Self", lockedBy: "Kiran J" },
-  { id: "C-2024-003", client: "Bajaj Allianz", type: "Property", location: "Bangalore", status: "completed", assignedTo: "Self", lockedBy: null },
-  { id: "C-2024-004", client: "Tata AIG", type: "Health", location: "Chennai", status: "started", assignedTo: "Self", lockedBy: null },
-  { id: "C-2024-005", client: "New India", type: "Property", location: "Pune", status: "pending", assignedTo: "Self", lockedBy: "Meera R" },
+  { id: "C-2024-001", client: "HDFC Ergo", type: "Vehicle", branch: "Mumbai HQ", location: "Mumbai", status: "created", assignedTo: "Unassigned", createdAt: "2026-01-09", lockedBy: null },
+  { id: "C-2024-002", client: "ICICI Lombard", type: "Vehicle", branch: "Delhi NCR", location: "Delhi", status: "assigned", assignedTo: "FE - Suresh K", createdAt: "2026-01-08", lockedBy: "Kiran J" },
+  { id: "C-2024-003", client: "Bajaj Allianz", type: "Property", branch: "Bangalore", location: "Bangalore", status: "inspected", assignedTo: "FE - Ganesh N", createdAt: "2026-01-08", lockedBy: null },
+  { id: "C-2024-004", client: "Tata AIG", type: "Health", branch: "Chennai", location: "Chennai", status: "verified", assignedTo: "Self", createdAt: "2026-01-07", lockedBy: null },
+  { id: "C-2024-005", client: "New India", type: "Property", branch: "Mumbai HQ", location: "Pune", status: "completed", assignedTo: "Self", createdAt: "2026-01-06", lockedBy: "Meera R" },
 ];
 
 const branchCases = [
@@ -24,6 +35,19 @@ const branchCases = [
 ];
 
 export default function BackOfficeDashboard() {
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+
+  const filteredCases = useMemo(() => {
+    return recentCases.filter((c) => {
+      if (statusFilter !== "all" && c.status !== statusFilter) return false;
+      if (fromDate && c.createdAt < fromDate) return false;
+      if (toDate && c.createdAt > toDate) return false;
+      return true;
+    });
+  }, [fromDate, statusFilter, toDate]);
+
   return (
     <DashboardLayout role="back-office" userName="Kiran Joshi">
       <div className="space-y-6">
@@ -33,7 +57,9 @@ export default function BackOfficeDashboard() {
             <h1 className="text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
               Back Office Dashboard
             </h1>
-            <p className="text-muted-foreground">Manage and validate verification cases</p>
+            <p className="text-muted-foreground">
+              Control layer for cases (Insurance Company → Back Office → Field Executive → Back Office → Insurance Company)
+            </p>
           </div>
           <Link href="/back-office/new-case">
             <Button className="gap-2" data-testid="add-new-case">
@@ -81,9 +107,38 @@ export default function BackOfficeDashboard() {
                 </Link>
               </CardHeader>
               <CardContent>
+                {/* Enhancement: simple filters (status + date range) */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                  <div className="space-y-2">
+                    <Label>Status</Label>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger data-testid="filter-status">
+                        <SelectValue placeholder="All" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="created">CREATED</SelectItem>
+                        <SelectItem value="assigned">ASSIGNED</SelectItem>
+                        <SelectItem value="inspected">INSPECTED</SelectItem>
+                        <SelectItem value="verified">VERIFIED</SelectItem>
+                        <SelectItem value="completed">COMPLETED</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>From</Label>
+                    <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} data-testid="filter-from" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>To</Label>
+                    <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} data-testid="filter-to" />
+                  </div>
+                </div>
+
                 <DataTable
                   columns={[
                     { key: "id", label: "Case ID", className: "font-mono" },
+                    { key: "branch", label: "Branch" },
                     { key: "client", label: "Client" },
                     { key: "type", label: "Type" },
                     { key: "location", label: "Location" },
@@ -92,7 +147,7 @@ export default function BackOfficeDashboard() {
                       label: "Status",
                       render: (row) => (
                         <div className="flex items-center gap-2">
-                          <StatusBadge status={row.status as "completed" | "in-progress" | "pending" | "started"} />
+                          <StatusBadge status={row.status as "created" | "assigned" | "inspected" | "verified" | "completed"} />
                           {row.lockedBy && (
                             <span className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
                               <Lock className="w-3 h-3" />
@@ -102,8 +157,10 @@ export default function BackOfficeDashboard() {
                         </div>
                       ),
                     },
+                    { key: "assignedTo", label: "Assigned" },
+                    { key: "createdAt", label: "Created" },
                   ]}
-                  data={recentCases}
+                  data={filteredCases}
                   searchPlaceholder="Search cases..."
                   pageSize={5}
                 />

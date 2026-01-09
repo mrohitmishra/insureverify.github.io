@@ -8,11 +8,11 @@ import { Progress } from "@/components/ui/progress";
 import { Link } from "wouter";
 
 const recentCases = [
-  { id: "C-2024-001", client: "HDFC Ergo", location: "Mumbai", status: "completed", assignee: "Rajesh K" },
-  { id: "C-2024-002", client: "ICICI Lombard", location: "Delhi", status: "in-progress", assignee: "Priya S" },
-  { id: "C-2024-003", client: "Bajaj Allianz", location: "Bangalore", status: "pending", assignee: "Amit P" },
-  { id: "C-2024-004", client: "Tata AIG", location: "Chennai", status: "started", assignee: "Sunita M" },
-  { id: "C-2024-005", client: "New India", location: "Pune", status: "completed", assignee: "Vikram R" },
+  { id: "C-2026-001", client: "HDFC Ergo", location: "Mumbai", status: "created", assignee: "Back Office - Kiran J" },
+  { id: "C-2026-002", client: "ICICI Lombard", location: "Delhi", status: "assigned", assignee: "FE - Suresh K" },
+  { id: "C-2026-003", client: "Bajaj Allianz", location: "Bangalore", status: "inspected", assignee: "Back Office - Meera R" },
+  { id: "C-2026-004", client: "Tata AIG", location: "Chennai", status: "verified", assignee: "Back Office - Kiran J" },
+  { id: "C-2026-005", client: "New India", location: "Pune", status: "completed", assignee: "Back Office - Meera R" },
 ];
 
 const branchPerformance = [
@@ -94,7 +94,16 @@ export default function VendorDashboard() {
                           <MapPin className="w-3.5 h-3.5" />
                           {caseItem.location}
                         </div>
-                        <StatusBadge status={caseItem.status as "completed" | "in-progress" | "pending" | "started"} />
+                        <StatusBadge
+                          status={
+                            caseItem.status as
+                              | "created"
+                              | "assigned"
+                              | "inspected"
+                              | "verified"
+                              | "completed"
+                          }
+                        />
                       </div>
                     </motion.div>
                   ))}
