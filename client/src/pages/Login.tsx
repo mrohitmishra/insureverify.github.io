@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { setSession, type AppRole } from "@/lib/auth";
 
 const roles = [
   {
@@ -51,6 +52,8 @@ export default function Login() {
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [showLogin, setShowLogin] = useState(false);
   const [isDark, setIsDark] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   useEffect(() => {
     if (typeof document === "undefined") return;
@@ -77,12 +80,16 @@ export default function Login() {
   const handleRoleSelect = (roleId: string) => {
     setSelectedRole(roleId);
     setShowLogin(true);
+    setEmail("");
+    setPassword("");
   };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     const role = roles.find((r) => r.id === selectedRole);
     if (role) {
+      const userName = email?.trim() ? email.trim() : "User";
+      setSession({ role: role.id as AppRole, userName });
       navigate(role.path);
     }
   };
@@ -234,6 +241,8 @@ export default function Login() {
                       id="email"
                       type="email"
                       placeholder="name@company.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
                       data-testid="input-email"
                     />
                   </div>
@@ -243,6 +252,8 @@ export default function Login() {
                       id="password"
                       type="password"
                       placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
                       data-testid="input-password"
                     />
                   </div>

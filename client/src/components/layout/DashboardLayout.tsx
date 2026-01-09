@@ -30,6 +30,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
+import { clearSession } from "@/lib/auth";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -123,7 +124,7 @@ const roleLabels: Record<string, string> = {
 };
 
 export function DashboardLayout({ children, role, userName = "John Doe" }: DashboardLayoutProps) {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
@@ -414,7 +415,9 @@ export function DashboardLayout({ children, role, userName = "John Doe" }: Dashb
                   className="text-destructive"
                   onSelect={(e) => {
                     e.preventDefault();
-                    toast({ title: "Logout", description: "Coming soon" });
+                    clearSession();
+                    toast({ title: "Logged out", description: "You have been signed out." });
+                    navigate("/");
                   }}
                   data-testid="menu-logout"
                 >

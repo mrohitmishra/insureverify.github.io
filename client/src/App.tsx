@@ -7,6 +7,7 @@ import NotFound from "@/pages/not-found";
 
 import Login from "@/pages/Login";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
+import ManageVendors from "@/pages/admin/ManageVendors";
 import VendorDashboard from "@/pages/vendor/VendorDashboard";
 import UserManagement from "@/pages/vendor/UserManagement";
 import ReportBuilder from "@/pages/vendor/ReportBuilder";
@@ -24,7 +25,7 @@ function Router() {
 
       {/* Admin Routes */}
       <Route path="/admin" component={AdminDashboard} />
-      <Route path="/admin/vendors" component={AdminDashboard} />
+      <Route path="/admin/vendors" component={ManageVendors} />
       <Route path="/admin/health" component={AdminDashboard} />
       <Route path="/admin/audit" component={AdminDashboard} />
 

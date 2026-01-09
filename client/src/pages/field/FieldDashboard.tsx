@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
+import { clearSession } from "@/lib/auth";
+import { useToast } from "@/hooks/use-toast";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -130,6 +132,7 @@ function CaseCard({ caseItem, showAction = true }: { caseItem: Case; showAction?
 
 export default function FieldDashboard() {
   const [activeTab, setActiveTab] = useState("today");
+  const { toast } = useToast();
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -241,6 +244,15 @@ export default function FieldDashboard() {
             className={`flex flex-col items-center gap-1 p-2 rounded-lg ${
               item.active ? "text-primary" : "text-muted-foreground"
             }`}
+            onClick={() => {
+              if (item.label === "Logout") {
+                clearSession();
+                toast({ title: "Logged out", description: "You have been signed out." });
+                navigate("/");
+                return;
+              }
+              toast({ title: item.label, description: "Coming soon" });
+            }}
             data-testid={`nav-${item.label.toLowerCase()}`}
           >
             <item.icon className="w-5 h-5" />
