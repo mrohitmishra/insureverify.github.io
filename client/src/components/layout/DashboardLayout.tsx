@@ -86,7 +86,7 @@ const navigationByRole: Record<string, NavItem[]> = {
       label: "Configuration",
       icon: Settings,
       children: [
-        { label: "Point Configuration", href: "/vendor/config/points" },
+        { label: "Report Configuration", href: "/vendor/config/points" },
         { label: "Report Builder", href: "/vendor/config/reports" },
       ],
     },

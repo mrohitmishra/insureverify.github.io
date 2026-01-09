@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { useLocation } from "wouter";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { DataTable } from "@/components/shared/DataTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,7 +17,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Upload,
   FileSpreadsheet,
@@ -27,8 +28,24 @@ import {
   Trash2,
   FileText,
   Download,
-  Settings2,
 } from "lucide-react";
+
+type PointRuleRow = {
+  code: string;
+  name: string;
+  category: string;
+  points: number;
+  status: "Active" | "Inactive";
+  updatedAt: string;
+};
+
+const mockPointRules: PointRuleRow[] = [
+  { code: "P-001", name: "GPS captured", category: "Field Evidence", points: 10, status: "Active", updatedAt: "2026-01-09" },
+  { code: "P-002", name: "Min photos met", category: "Field Evidence", points: 15, status: "Active", updatedAt: "2026-01-09" },
+  { code: "P-003", name: "Vehicle number verified", category: "Verification", points: 8, status: "Active", updatedAt: "2026-01-08" },
+  { code: "P-004", name: "Chassis number verified", category: "Verification", points: 12, status: "Active", updatedAt: "2026-01-08" },
+  { code: "P-005", name: "Back office QC passed", category: "QC", points: 20, status: "Inactive", updatedAt: "2026-01-07" },
+];
 
 const reportSections = [
   { id: "basic", name: "Basic Information", fields: ["Policy Number", "Insured Name", "Address", "Contact Number"] },
@@ -45,6 +62,9 @@ interface Field {
 }
 
 export default function ReportBuilder() {
+  const [location] = useLocation();
+  const mode = location.startsWith("/vendor/config/points") ? "config" : "builder";
+
   const [selectedSection, setSelectedSection] = useState("basic");
   const [fields, setFields] = useState<Field[]>([
     { id: "1", name: "Policy Number", visibility: "mandatory", placeholder: "{{policy_number}}" },
@@ -52,6 +72,25 @@ export default function ReportBuilder() {
     { id: "3", name: "Address", visibility: "mandatory", placeholder: "{{address}}" },
     { id: "4", name: "Contact Number", visibility: "optional", placeholder: "{{contact}}" },
   ]);
+
+  const pointRuleColumns = useMemo(
+    () => [
+      { key: "code", label: "Code", className: "w-24" },
+      { key: "name", label: "Rule" },
+      { key: "category", label: "Category" },
+      { key: "points", label: "Points", className: "text-center w-24" },
+      {
+        key: "status",
+        label: "Status",
+        className: "w-28",
+        render: (row: PointRuleRow) => (
+          <Badge variant={row.status === "Active" ? "default" : "secondary"}>{row.status}</Badge>
+        ),
+      },
+      { key: "updatedAt", label: "Updated" },
+    ],
+    []
+  );
 
   const toggleVisibility = (id: string) => {
     setFields(fields.map(f => {
@@ -81,23 +120,56 @@ export default function ReportBuilder() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
-              Report Builder
+              {mode === "config" ? "Report Configuration" : "Report Builder"}
             </h1>
-            <p className="text-muted-foreground">Configure report structure and field visibility</p>
+            <p className="text-muted-foreground">
+              {mode === "config"
+                ? "Configure points and rules used for reporting"
+                : "Configure report structure and field visibility"}
+            </p>
           </div>
           <div className="flex gap-3">
-            <Button variant="outline" className="gap-2" data-testid="import-excel">
-              <FileSpreadsheet className="w-4 h-4" />
-              Import Excel
-            </Button>
-            <Button className="gap-2" data-testid="save-template">
-              <Download className="w-4 h-4" />
-              Save Template
-            </Button>
+            {mode === "builder" ? (
+              <>
+                <Button variant="outline" className="gap-2" data-testid="import-excel">
+                  <FileSpreadsheet className="w-4 h-4" />
+                  Import Excel
+                </Button>
+                <Button className="gap-2" data-testid="save-template">
+                  <Download className="w-4 h-4" />
+                  Save Template
+                </Button>
+              </>
+            ) : (
+              <Button className="gap-2" data-testid="add-point-rule">
+                <Plus className="w-4 h-4" />
+                Add rule
+              </Button>
+            )}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {mode === "config" ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg" style={{ fontFamily: "var(--font-display)" }}>
+                Points & Rules
+              </CardTitle>
+              <CardDescription>
+                Manage configurable rules used for scoring/points in reporting (mock data)
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DataTable
+                columns={pointRuleColumns}
+                data={mockPointRules}
+                searchPlaceholder="Search rules..."
+                pageSize={10}
+              />
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
           {/* Upload Section */}
           <Card>
             <CardHeader>
@@ -249,7 +321,8 @@ export default function ReportBuilder() {
               </div>
             </CardContent>
           </Card>
-        </div>
+          </div>
+        )}
       </div>
     </DashboardLayout>
   );
