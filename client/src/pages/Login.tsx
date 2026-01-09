@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Shield, ChevronRight, User, Building2, ClipboardList, Users, Briefcase } from "lucide-react";
+import { Shield, ChevronRight, Building2, ClipboardList, Users, Briefcase, Moon, Sun } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +15,6 @@ const roles = [
     description: "Platform administration & vendor management",
     icon: Shield,
     path: "/admin",
-    color: "from-violet-500 to-purple-600",
   },
   {
     id: "master-vendor",
@@ -23,7 +22,6 @@ const roles = [
     description: "User, client, and report configuration",
     icon: Building2,
     path: "/vendor",
-    color: "from-blue-500 to-cyan-500",
   },
   {
     id: "back-office",
@@ -31,7 +29,6 @@ const roles = [
     description: "Case management & data validation",
     icon: ClipboardList,
     path: "/back-office",
-    color: "from-emerald-500 to-teal-500",
   },
   {
     id: "field-executive",
@@ -39,7 +36,6 @@ const roles = [
     description: "Inspections & field data collection",
     icon: Users,
     path: "/field",
-    color: "from-orange-500 to-amber-500",
   },
   {
     id: "insurance-company",
@@ -47,7 +43,6 @@ const roles = [
     description: "Case upload & report downloads",
     icon: Briefcase,
     path: "/insurance",
-    color: "from-rose-500 to-pink-500",
   },
 ];
 
@@ -55,6 +50,29 @@ export default function Login() {
   const [, navigate] = useLocation();
   const [selectedRole, setSelectedRole] = useState<string | null>(null);
   const [showLogin, setShowLogin] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    setIsDark(document.documentElement.classList.contains("dark"));
+  }, []);
+
+  const toggleTheme = () => {
+    if (typeof document === "undefined") return;
+    const nextIsDark = !document.documentElement.classList.contains("dark");
+    document.documentElement.classList.toggle("dark", nextIsDark);
+    try {
+      localStorage.setItem("theme", nextIsDark ? "dark" : "light");
+    } catch {
+      // ignore write failures (private mode, blocked storage, etc.)
+    }
+    setIsDark(nextIsDark);
+  };
+
+  const selectedRoleLabel = useMemo(
+    () => roles.find((r) => r.id === selectedRole)?.label,
+    [selectedRole]
+  );
 
   const handleRoleSelect = (roleId: string) => {
     setSelectedRole(roleId);
@@ -70,172 +88,172 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex">
-      {/* Left Panel - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-transparent" />
-        <div className="absolute inset-0" style={{ 
-          backgroundImage: "radial-gradient(circle at 2px 2px, rgba(255,255,255,0.05) 1px, transparent 0)",
-          backgroundSize: "32px 32px"
-        }} />
-        
-        <div className="relative z-10 p-12 flex flex-col justify-between w-full">
-          <div>
+    <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-6">
+      <div className="w-full max-w-5xl grid gap-6 lg:grid-cols-2 items-stretch">
+        {/* Left: About */}
+        <Card className="hidden lg:flex flex-col">
+          <CardHeader>
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
-                <Shield className="w-7 h-7 text-primary-foreground" />
+              <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center shrink-0">
+                <Shield className="w-6 h-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>
-                  InsureVerify
-                </h1>
-                <p className="text-white/60 text-sm">Insurance Verification Platform</p>
+                <CardTitle>InsureVerify</CardTitle>
+                <CardDescription>Insurance Verification Platform</CardDescription>
               </div>
             </div>
-          </div>
-
-          <div className="space-y-6">
-            <h2 className="text-4xl font-bold text-white leading-tight" style={{ fontFamily: "var(--font-display)" }}>
-              Streamline your insurance<br />verification process
-            </h2>
-            <p className="text-white/70 text-lg max-w-md">
-              A complete platform for master vendors, field executives, and insurance companies to manage inspections and generate reports efficiently.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-6">
-            <div className="text-center">
-              <p className="text-3xl font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>500+</p>
-              <p className="text-white/60 text-sm">Active Vendors</p>
+          </CardHeader>
+          <CardContent className="flex-1 space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold">What this platform is for</h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                Role-based dashboards to manage cases, capture field evidence, and generate standardized reports.
+              </p>
             </div>
-            <div className="w-px h-12 bg-white/20" />
-            <div className="text-center">
-              <p className="text-3xl font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>1M+</p>
-              <p className="text-white/60 text-sm">Cases Processed</p>
-            </div>
-            <div className="w-px h-12 bg-white/20" />
-            <div className="text-center">
-              <p className="text-3xl font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>99.9%</p>
-              <p className="text-white/60 text-sm">Uptime</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Right Panel - Login */}
-      <div className="flex-1 flex items-center justify-center p-6 lg:p-12">
-        <div className="w-full max-w-lg">
-          {/* Mobile Logo */}
-          <div className="lg:hidden flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-              <Shield className="w-6 h-6 text-primary-foreground" />
-            </div>
-            <h1 className="text-xl font-bold text-white" style={{ fontFamily: "var(--font-display)" }}>
-              InsureVerify
-            </h1>
-          </div>
-
-          {!showLogin ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-            >
-              <h2 className="text-2xl font-bold text-white mb-2" style={{ fontFamily: "var(--font-display)" }}>
-                Welcome back
-              </h2>
-              <p className="text-white/60 mb-8">Select your role to continue</p>
-
-              <div className="space-y-3">
-                {roles.map((role, index) => (
-                  <motion.button
-                    key={role.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    onClick={() => handleRoleSelect(role.id)}
-                    className={cn(
-                      "w-full flex items-center gap-4 p-4 rounded-xl bg-white/5 border border-white/10",
-                      "hover:bg-white/10 hover:border-white/20 transition-all duration-200 group text-left"
-                    )}
-                    data-testid={`role-select-${role.id}`}
-                  >
-                    <div className={cn(
-                      "w-12 h-12 rounded-lg bg-gradient-to-br flex items-center justify-center shrink-0",
-                      role.color
-                    )}>
-                      <role.icon className="w-6 h-6 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white font-semibold">{role.label}</p>
-                      <p className="text-white/50 text-sm truncate">{role.description}</p>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-white/40 group-hover:text-white/70 transition-colors" />
-                  </motion.button>
-                ))}
+            <div className="space-y-3">
+              <div className="flex gap-3">
+                <div className="mt-1 h-2 w-2 rounded-full bg-primary" />
+                <p className="text-sm">
+                  <span className="font-medium">Predefined inspection structure</span> for consistent, insurance-ready data.
+                </p>
               </div>
-            </motion.div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-            >
-              <button
-                onClick={() => setShowLogin(false)}
-                className="text-white/60 hover:text-white text-sm mb-6 flex items-center gap-1"
-                data-testid="back-to-roles"
+              <div className="flex gap-3">
+                <div className="mt-1 h-2 w-2 rounded-full bg-primary" />
+                <p className="text-sm">
+                  <span className="font-medium">Evidence capture</span> with photos, timestamps, and location.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <div className="mt-1 h-2 w-2 rounded-full bg-primary" />
+                <p className="text-sm">
+                  <span className="font-medium">Back office control</span> to validate cases and produce final reports.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <div className="mt-1 h-2 w-2 rounded-full bg-primary" />
+                <p className="text-sm">
+                  <span className="font-medium">Enterprise focus</span> on tables, forms, and clear actions.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Right: Login */}
+        <Card className="w-full">
+          <CardHeader className="space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0 lg:hidden">
+                <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center shrink-0">
+                  <Shield className="w-6 h-6 text-primary-foreground" />
+                </div>
+                <div className="min-w-0">
+                  <CardTitle className="truncate">InsureVerify</CardTitle>
+                  <CardDescription className="truncate">Insurance Verification Platform</CardDescription>
+                </div>
+              </div>
+
+              <div className="flex-1 lg:hidden" />
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={toggleTheme}
+                aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+                data-testid="theme-toggle"
               >
-                ← Back to role selection
-              </button>
+                {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                {isDark ? "Light" : "Dark"}
+              </Button>
+            </div>
+          </CardHeader>
 
-              <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
-                <CardHeader>
-                  <CardTitle className="text-white" style={{ fontFamily: "var(--font-display)" }}>
-                    Sign in as {roles.find((r) => r.id === selectedRole)?.label}
-                  </CardTitle>
-                  <CardDescription className="text-white/60">
-                    Enter your credentials to access the dashboard
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleLogin} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="email" className="text-white/80">Email</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="name@company.com"
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/40"
-                        data-testid="input-email"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="password" className="text-white/80">Password</Label>
-                      <Input
-                        id="password"
-                        type="password"
-                        placeholder="••••••••"
-                        className="bg-white/10 border-white/20 text-white placeholder:text-white/40"
-                        data-testid="input-password"
-                      />
-                    </div>
-                    <div className="flex items-center justify-between text-sm">
-                      <label className="flex items-center gap-2 text-white/60">
-                        <input type="checkbox" className="rounded" />
-                        Remember me
-                      </label>
-                      <a href="#" className="text-primary hover:underline">Forgot password?</a>
-                    </div>
-                    <Button type="submit" className="w-full" data-testid="button-login">
-                      Sign in
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
-        </div>
+          <CardContent>
+            {!showLogin ? (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25 }}
+              >
+                <div className="mb-6">
+                  <h2 className="text-lg font-semibold">Sign in</h2>
+                  <p className="text-sm text-muted-foreground">Select your role to continue</p>
+                </div>
+
+                <div className="space-y-2">
+                  {roles.map((role, index) => (
+                    <motion.button
+                      key={role.id}
+                      initial={{ opacity: 0, x: -12 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05, duration: 0.2 }}
+                      onClick={() => handleRoleSelect(role.id)}
+                      className={cn(
+                        "w-full flex items-center gap-3 p-3 rounded-md border border-border bg-card",
+                        "hover:bg-accent hover:text-accent-foreground transition-colors group text-left"
+                      )}
+                      data-testid={`role-select-${role.id}`}
+                    >
+                      <div className="w-10 h-10 rounded-md bg-muted flex items-center justify-center shrink-0">
+                        <role.icon className="w-5 h-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">{role.label}</p>
+                        <p className="text-sm text-muted-foreground truncate">{role.description}</p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-foreground transition-colors" />
+                    </motion.button>
+                  ))}
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.25 }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setShowLogin(false)}
+                  className="text-sm text-muted-foreground hover:text-foreground mb-4 flex items-center gap-1"
+                  data-testid="back-to-roles"
+                >
+                  ← Back
+                </button>
+
+                <div className="mb-6">
+                  <h2 className="text-lg font-semibold">Sign in as {selectedRoleLabel}</h2>
+                  <p className="text-sm text-muted-foreground">Enter your credentials to access the dashboard</p>
+                </div>
+
+                <form onSubmit={handleLogin} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="name@company.com"
+                      data-testid="input-email"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="••••••••"
+                      data-testid="input-password"
+                    />
+                  </div>
+                  <Button type="submit" className="w-full" data-testid="button-login">
+                    Sign in
+                  </Button>
+                </form>
+              </motion.div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

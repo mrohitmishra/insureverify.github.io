@@ -30,6 +30,7 @@ function Router() {
 
       {/* Master Vendor Routes */}
       <Route path="/vendor" component={VendorDashboard} />
+      <Route path="/vendor/cases" component={VendorDashboard} />
       <Route path="/vendor/users/:type" component={UserManagement} />
       <Route path="/vendor/clients/:type" component={VendorDashboard} />
       <Route path="/vendor/config/points" component={ReportBuilder} />

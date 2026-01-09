@@ -5,6 +5,7 @@ import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Users, FolderOpen, CheckCircle2, Clock, TrendingUp, MapPin } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { Link } from "wouter";
 
 const recentCases = [
   { id: "C-2024-001", client: "HDFC Ergo", location: "Mumbai", status: "completed", assignee: "Rajesh K" },
@@ -67,9 +68,9 @@ export default function VendorDashboard() {
             <Card>
               <CardHeader className="pb-3 flex flex-row items-center justify-between">
                 <CardTitle style={{ fontFamily: "var(--font-display)" }}>Recent Cases</CardTitle>
-                <a href="/vendor/cases" className="text-sm text-primary hover:underline" data-testid="view-all-cases">
+                <Link href="/vendor/cases" className="text-sm text-primary hover:underline" data-testid="view-all-cases">
                   View all
-                </a>
+                </Link>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">

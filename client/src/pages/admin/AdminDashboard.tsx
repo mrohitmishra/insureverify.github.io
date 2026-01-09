@@ -1,9 +1,8 @@
-import { motion } from "framer-motion";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { StatsCard } from "@/components/shared/StatsCard";
 import { DataTable } from "@/components/shared/DataTable";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { Building2, Users, Activity, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Building2, Users, Activity, AlertTriangle } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const mockVendors = [
@@ -12,13 +11,6 @@ const mockVendors = [
   { id: "V003", name: "QuickVerify Solutions", status: "completed", users: 28, cases: 720, lastActive: "1 hour ago" },
   { id: "V004", name: "TrustCheck Partners", status: "pending", users: 15, cases: 340, lastActive: "3 hours ago" },
   { id: "V005", name: "VerifyPro India", status: "completed", users: 52, cases: 1580, lastActive: "30 mins ago" },
-];
-
-const auditLogs = [
-  { time: "14:32", user: "Admin", action: "Created new Master Vendor", details: "ABC Verification Services" },
-  { time: "13:15", user: "System", action: "Platform health check", details: "All systems operational" },
-  { time: "12:45", user: "Admin", action: "Updated vendor permissions", details: "XYZ Inspections Ltd" },
-  { time: "11:30", user: "System", action: "Daily backup completed", details: "Backup ID: BK-20240108" },
 ];
 
 export default function AdminDashboard() {
@@ -85,37 +77,6 @@ export default function AdminDashboard() {
                   searchPlaceholder="Search vendors..."
                   pageSize={5}
                 />
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Audit Log */}
-          <div>
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle style={{ fontFamily: "var(--font-display)" }}>Recent Activity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {auditLogs.map((log, index) => (
-                    <motion.div
-                      key={index}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className="flex gap-3"
-                    >
-                      <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                        <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium">{log.action}</p>
-                        <p className="text-xs text-muted-foreground truncate">{log.details}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{log.time} • {log.user}</p>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
               </CardContent>
             </Card>
           </div>

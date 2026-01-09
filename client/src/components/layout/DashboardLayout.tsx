@@ -29,6 +29,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -123,6 +124,7 @@ const roleLabels: Record<string, string> = {
 
 export function DashboardLayout({ children, role, userName = "John Doe" }: DashboardLayoutProps) {
   const [location] = useLocation();
+  const { toast } = useToast();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [expandedItems, setExpandedItems] = useState<string[]>([]);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -148,7 +150,14 @@ export function DashboardLayout({ children, role, userName = "John Doe" }: Dashb
       return (
         <div>
           <button
-            onClick={() => toggleExpanded(item.label)}
+            onClick={() => {
+              if (!sidebarOpen) {
+                setSidebarOpen(true);
+                setExpandedItems((prev) => (prev.includes(item.label) ? prev : [...prev, item.label]));
+                return;
+              }
+              toggleExpanded(item.label);
+            }}
             className={cn(
               "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
               active
@@ -189,6 +198,7 @@ export function DashboardLayout({ children, role, userName = "John Doe" }: Dashb
                           ? "bg-sidebar-primary text-sidebar-primary-foreground"
                           : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                       )}
+                      onClick={() => setMobileMenuOpen(false)}
                       data-testid={`nav-${child.label.toLowerCase().replace(/\s+/g, "-")}`}
                     >
                       {child.label}
@@ -211,6 +221,7 @@ export function DashboardLayout({ children, role, userName = "John Doe" }: Dashb
             ? "bg-sidebar-primary text-sidebar-primary-foreground"
             : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
         )}
+        onClick={() => setMobileMenuOpen(false)}
         data-testid={`nav-${item.label.toLowerCase().replace(/\s+/g, "-")}`}
       >
         <item.icon className="w-5 h-5 shrink-0" />
@@ -354,7 +365,13 @@ export function DashboardLayout({ children, role, userName = "John Doe" }: Dashb
           </div>
 
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="relative" data-testid="notifications-button">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="relative"
+              onClick={() => toast({ title: "Notifications", description: "Coming soon" })}
+              data-testid="notifications-button"
+            >
               <Bell className="w-5 h-5" />
               <span className="absolute top-2 right-2 w-2 h-2 bg-destructive rounded-full" />
             </Button>
@@ -372,16 +389,35 @@ export function DashboardLayout({ children, role, userName = "John Doe" }: Dashb
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem data-testid="menu-profile">
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    toast({ title: "Profile", description: "Coming soon" });
+                  }}
+                  data-testid="menu-profile"
+                >
                   <User className="w-4 h-4 mr-2" />
                   Profile
                 </DropdownMenuItem>
-                <DropdownMenuItem data-testid="menu-change-password">
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    toast({ title: "Change Password", description: "Coming soon" });
+                  }}
+                  data-testid="menu-change-password"
+                >
                   <Lock className="w-4 h-4 mr-2" />
                   Change Password
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="text-destructive" data-testid="menu-logout">
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    toast({ title: "Logout", description: "Coming soon" });
+                  }}
+                  data-testid="menu-logout"
+                >
                   <LogOut className="w-4 h-4 mr-2" />
                   Logout
                 </DropdownMenuItem>
