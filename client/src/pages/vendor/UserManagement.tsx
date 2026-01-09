@@ -1,9 +1,8 @@
-import { useState } from "react";
+import { useMemo } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { DataTable } from "@/components/shared/DataTable";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
@@ -22,7 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, UserPlus, MoreHorizontal } from "lucide-react";
+import { UserPlus, MoreHorizontal } from "lucide-react";
+import { useRoute } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -113,7 +114,9 @@ function AddUserDialog({ userType }: { userType: string }) {
 }
 
 export default function UserManagement() {
-  const [activeTab, setActiveTab] = useState("branch-managers");
+  const { toast } = useToast();
+  const [, params] = useRoute("/vendor/users/:type");
+  const userTypeParam = params?.type ?? "branch-managers";
 
   const ActionCell = () => (
     <DropdownMenu>
@@ -123,9 +126,9 @@ export default function UserManagement() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem>View Details</DropdownMenuItem>
-        <DropdownMenuItem>Edit</DropdownMenuItem>
-        <DropdownMenuItem className="text-destructive">Deactivate</DropdownMenuItem>
+        <DropdownMenuItem onSelect={(e) => { e.preventDefault(); toast({ title: "View Details", description: "Coming soon" }); }}>View Details</DropdownMenuItem>
+        <DropdownMenuItem onSelect={(e) => { e.preventDefault(); toast({ title: "Edit", description: "Coming soon" }); }}>Edit</DropdownMenuItem>
+        <DropdownMenuItem className="text-destructive" onSelect={(e) => { e.preventDefault(); toast({ title: "Deactivate", description: "Coming soon" }); }}>Deactivate</DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
@@ -136,130 +139,108 @@ export default function UserManagement() {
     </Badge>
   );
 
+  const view = useMemo(() => {
+    const type = userTypeParam;
+
+    if (type === "team-leads") {
+      return {
+        title: "Team Leads",
+        description: "Manage team lead accounts and assignments",
+        addLabel: "Team Lead",
+        searchPlaceholder: "Search team leads...",
+        data: teamLeads,
+        columns: [
+          { key: "id", label: "ID" },
+          { key: "name", label: "Name" },
+          { key: "email", label: "Email" },
+          { key: "branch", label: "Branch" },
+          { key: "team", label: "Team" },
+          { key: "status", label: "Status", render: (row: Record<string, unknown>) => <StatusCell status={String(row.status ?? "")} /> },
+          { key: "actions", label: "", render: () => <ActionCell /> },
+        ],
+      };
+    }
+
+    if (type === "back-office") {
+      return {
+        title: "Back Office",
+        description: "Manage back office users and workload",
+        addLabel: "Back Office Executive",
+        searchPlaceholder: "Search back office users...",
+        data: backOffice,
+        columns: [
+          { key: "id", label: "ID" },
+          { key: "name", label: "Name" },
+          { key: "email", label: "Email" },
+          { key: "branch", label: "Branch" },
+          { key: "casesHandled", label: "Cases Handled" },
+          { key: "status", label: "Status", render: (row: Record<string, unknown>) => <StatusCell status={String(row.status ?? "")} /> },
+          { key: "actions", label: "", render: () => <ActionCell /> },
+        ],
+      };
+    }
+
+    if (type === "field-executives") {
+      return {
+        title: "Field Executives",
+        description: "Manage field executive users and coverage zones",
+        addLabel: "Field Executive",
+        searchPlaceholder: "Search field executives...",
+        data: fieldExecutives,
+        columns: [
+          { key: "id", label: "ID" },
+          { key: "name", label: "Name" },
+          { key: "email", label: "Email" },
+          { key: "zone", label: "Zone" },
+          { key: "completedToday", label: "Completed Today" },
+          { key: "status", label: "Status", render: (row: Record<string, unknown>) => <StatusCell status={String(row.status ?? "")} /> },
+          { key: "actions", label: "", render: () => <ActionCell /> },
+        ],
+      };
+    }
+
+    // default: branch-managers
+    return {
+      title: "Branch Managers",
+      description: "Manage branch manager accounts and branch assignment",
+      addLabel: "Branch Manager",
+      searchPlaceholder: "Search branch managers...",
+      data: branchManagers,
+      columns: [
+        { key: "id", label: "ID" },
+        { key: "name", label: "Name" },
+        { key: "email", label: "Email" },
+        { key: "branch", label: "Branch" },
+        { key: "phone", label: "Phone" },
+        { key: "status", label: "Status", render: (row: Record<string, unknown>) => <StatusCell status={String(row.status ?? "")} /> },
+        { key: "actions", label: "", render: () => <ActionCell /> },
+      ],
+    };
+  }, [userTypeParam]);
+
   return (
     <DashboardLayout role="master-vendor" userName="Vendor Admin">
       <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold" style={{ fontFamily: "var(--font-display)" }}>
-            User Management
+            {view.title}
           </h1>
-          <p className="text-muted-foreground">Manage all users across branches and roles</p>
+          <p className="text-muted-foreground">{view.description}</p>
         </div>
 
         <Card>
-          <CardContent className="p-0">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <div className="border-b px-4">
-                <TabsList className="bg-transparent h-14 p-0 gap-6">
-                  <TabsTrigger
-                    value="branch-managers"
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-14"
-                    data-testid="tab-branch-managers"
-                  >
-                    Branch Managers
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="team-leads"
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-14"
-                    data-testid="tab-team-leads"
-                  >
-                    Team Leads
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="back-office"
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-14"
-                    data-testid="tab-back-office"
-                  >
-                    Back Office
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="field-executives"
-                    className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none h-14"
-                    data-testid="tab-field-executives"
-                  >
-                    Field Executives
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-
-              <div className="p-4">
-                <TabsContent value="branch-managers" className="m-0">
-                  <div className="flex justify-end mb-4">
-                    <AddUserDialog userType="Branch Manager" />
-                  </div>
-                  <DataTable
-                    columns={[
-                      { key: "id", label: "ID" },
-                      { key: "name", label: "Name" },
-                      { key: "email", label: "Email" },
-                      { key: "branch", label: "Branch" },
-                      { key: "phone", label: "Phone" },
-                      { key: "status", label: "Status", render: (row) => <StatusCell status={row.status as string} /> },
-                      { key: "actions", label: "", render: () => <ActionCell /> },
-                    ]}
-                    data={branchManagers}
-                    searchPlaceholder="Search branch managers..."
-                  />
-                </TabsContent>
-
-                <TabsContent value="team-leads" className="m-0">
-                  <div className="flex justify-end mb-4">
-                    <AddUserDialog userType="Team Lead" />
-                  </div>
-                  <DataTable
-                    columns={[
-                      { key: "id", label: "ID" },
-                      { key: "name", label: "Name" },
-                      { key: "email", label: "Email" },
-                      { key: "branch", label: "Branch" },
-                      { key: "team", label: "Team" },
-                      { key: "status", label: "Status", render: (row) => <StatusCell status={row.status as string} /> },
-                      { key: "actions", label: "", render: () => <ActionCell /> },
-                    ]}
-                    data={teamLeads}
-                    searchPlaceholder="Search team leads..."
-                  />
-                </TabsContent>
-
-                <TabsContent value="back-office" className="m-0">
-                  <div className="flex justify-end mb-4">
-                    <AddUserDialog userType="Back Office Executive" />
-                  </div>
-                  <DataTable
-                    columns={[
-                      { key: "id", label: "ID" },
-                      { key: "name", label: "Name" },
-                      { key: "email", label: "Email" },
-                      { key: "branch", label: "Branch" },
-                      { key: "casesHandled", label: "Cases Handled" },
-                      { key: "status", label: "Status", render: (row) => <StatusCell status={row.status as string} /> },
-                      { key: "actions", label: "", render: () => <ActionCell /> },
-                    ]}
-                    data={backOffice}
-                    searchPlaceholder="Search back office users..."
-                  />
-                </TabsContent>
-
-                <TabsContent value="field-executives" className="m-0">
-                  <div className="flex justify-end mb-4">
-                    <AddUserDialog userType="Field Executive" />
-                  </div>
-                  <DataTable
-                    columns={[
-                      { key: "id", label: "ID" },
-                      { key: "name", label: "Name" },
-                      { key: "email", label: "Email" },
-                      { key: "zone", label: "Zone" },
-                      { key: "completedToday", label: "Completed Today" },
-                      { key: "status", label: "Status", render: (row) => <StatusCell status={row.status as string} /> },
-                      { key: "actions", label: "", render: () => <ActionCell /> },
-                    ]}
-                    data={fieldExecutives}
-                    searchPlaceholder="Search field executives..."
-                  />
-                </TabsContent>
-              </div>
-            </Tabs>
+          <CardHeader className="pb-0">
+            <CardTitle style={{ fontFamily: "var(--font-display)" }}>User Management</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="flex justify-end mb-4">
+              <AddUserDialog userType={view.addLabel} />
+            </div>
+            <DataTable
+              columns={view.columns}
+              data={view.data}
+              searchPlaceholder={view.searchPlaceholder}
+            />
           </CardContent>
         </Card>
       </div>
