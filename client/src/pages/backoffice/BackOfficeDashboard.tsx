@@ -259,7 +259,8 @@ function CaseListPage() {
         {/* FILTER SECTION (TOP) — single horizontal row per spec */}
         <Card>
           <CardContent className="pt-6">
-            <div className="flex flex-wrap items-end gap-3">
+            <div className="overflow-x-auto">
+              <div className="flex flex-nowrap items-end gap-3 min-w-max">
               <div className="space-y-2 min-w-[180px]">
                 <Label>Vendor Branch</Label>
                 <Select
@@ -378,6 +379,7 @@ function CaseListPage() {
               <Button variant="outline" onClick={resetFilters} data-testid="reset-filters">
                 Reset Filters
               </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -511,11 +513,6 @@ function CaseListPage() {
 export default function BackOfficeDashboard() {
   const [location] = useLocation();
 
-  // Case List route must stay simple: ONLY listing + filtering.
-  if (location === "/back-office/cases") {
-    return <CaseListPage />;
-  }
-
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -528,6 +525,11 @@ export default function BackOfficeDashboard() {
       return true;
     });
   }, [fromDate, statusFilter, toDate]);
+
+  // Case List route must stay simple: ONLY listing + filtering.
+  if (location === "/back-office/cases") {
+    return <CaseListPage />;
+  }
 
   return (
     <DashboardLayout role="back-office" userName="Kiran Joshi">
